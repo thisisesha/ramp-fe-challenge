@@ -13,6 +13,7 @@ export function App() {
   const { data: paginatedTransactions, ...paginatedTransactionsUtils } = usePaginatedTransactions()
   const { data: transactionsByEmployee, ...transactionsByEmployeeUtils } = useTransactionsByEmployee()
   const [isLoading, setIsLoading] = useState(false)
+  const [isEmployeeFiltered, setIsEmployeeFiltered] = useState(false)
 
   const transactions = useMemo(
     () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
@@ -21,18 +22,21 @@ export function App() {
 
   const loadAllTransactions = useCallback(async () => {
     setIsLoading(true)
+    setIsEmployeeFiltered(false)
     transactionsByEmployeeUtils.invalidateData()
 
     await employeeUtils.fetchAll()
-    await paginatedTransactionsUtils.fetchAll()
-
     setIsLoading(false)
+    await paginatedTransactionsUtils.fetchAll()
+    
   }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils])
 
   const loadTransactionsByEmployee = useCallback(
     async (employeeId: string) => {
+      setIsEmployeeFiltered(true)
       paginatedTransactionsUtils.invalidateData()
       await transactionsByEmployeeUtils.fetchById(employeeId)
+      
     },
     [paginatedTransactionsUtils, transactionsByEmployeeUtils]
   )
@@ -42,6 +46,11 @@ export function App() {
       loadAllTransactions()
     }
   }, [employeeUtils.loading, employees, loadAllTransactions])
+
+  // Check if more transactions are available to load
+  const hasMoreTransactions = useMemo(() => {
+    return paginatedTransactions?.nextPage !== null
+  }, [paginatedTransactions])
 
   return (
     <Fragment>
@@ -74,10 +83,10 @@ export function App() {
         <div className="RampGrid">
           <Transactions transactions={transactions} />
 
-          {transactions !== null && (
+          {!isEmployeeFiltered && transactions !== null && hasMoreTransactions && (
             <button
               className="RampButton"
-              disabled={paginatedTransactionsUtils.loading}
+              disabled={paginatedTransactionsUtils.loading }
               onClick={async () => {
                 await loadAllTransactions()
               }}
