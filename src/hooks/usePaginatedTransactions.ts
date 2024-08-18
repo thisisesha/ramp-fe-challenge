@@ -18,11 +18,17 @@ export function usePaginatedTransactions(): PaginatedTransactionsResult {
     )
 
     setPaginatedTransactions((previousResponse) => {
-      if (response === null || previousResponse === null) {
+      if (response === null) {
         return response
       }
-
-      return { data: response.data, nextPage: response.nextPage }
+      
+      // Append the new transactions to the existing ones
+      return previousResponse === null
+        ? response
+        : {
+            data: [...previousResponse.data, ...response.data],
+            nextPage: response.nextPage,
+          }
     })
   }, [fetchWithCache, paginatedTransactions])
 
